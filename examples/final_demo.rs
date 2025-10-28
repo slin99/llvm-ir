@@ -181,9 +181,9 @@ entry:
         println!("✅ Exported IR re-assembles to bitcode");
     }
     
-    println!("\nNote: The current implementation exports function signatures");
-    println!("without bodies. This is sufficient for module metadata, type");
-    println!("information, and interfacing with LLVM tools.");
+    println!("\nThe implementation now exports complete function bodies including");
+    println!("basic blocks, instructions, and terminators. IR is preserved through");
+    println!("the save/load roundtrip with only minor cosmetic differences.");
     
     println!("\nAll files are in: {}", test_dir.display());
     println!("\nDemonstration complete! ✓");

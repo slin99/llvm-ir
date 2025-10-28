@@ -94,9 +94,9 @@ fn main() {
             println!("  Verification:");
             println!("    Source file matches: {}", 
                 loaded.source_file_name == module.source_file_name);
-            // Note: Functions are exported as declarations (without bodies)
-            println!("    Function count: {} -> {} declarations", 
-                module.functions.len(), loaded.func_declarations.len());
+            // Functions are now exported with bodies
+            println!("    Function count: {} -> {} with bodies", 
+                module.functions.len(), loaded.functions.len());
             println!("    Global vars match: {}", 
                 loaded.global_vars.len() == module.global_vars.len());
         }
@@ -114,8 +114,8 @@ fn main() {
             println!("  Verification:");
             println!("    Source file matches: {}", 
                 loaded.source_file_name == module.source_file_name);
-            println!("    Function count: {} -> {} declarations", 
-                module.functions.len(), loaded.func_declarations.len());
+            println!("    Function count: {} -> {} with bodies", 
+                module.functions.len(), loaded.functions.len());
         }
         Err(e) => {
             eprintln!("  ✗ Error loading exported IR text: {}", e);
@@ -124,6 +124,6 @@ fn main() {
     }
 
     println!("\n✓ All operations completed successfully!");
-    println!("\nNote: The current implementation exports function signatures without bodies.");
-    println!("This is sufficient for module metadata, type information, and declarations.");
+    println!("\nThe implementation exports complete function bodies including");
+    println!("basic blocks, instructions, and terminators.");
 }
