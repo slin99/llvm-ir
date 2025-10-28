@@ -96,14 +96,16 @@ int main() {
     let loaded = Module::from_bc_path(exported_bc.to_str().unwrap())
         .expect("Failed to load exported bitcode");
     assert_eq!(loaded.source_file_name, module.source_file_name);
-    // Functions are exported as declarations
-    assert_eq!(loaded.func_declarations.len(), 4); // add, multiply, main, printf
+    // Functions are now exported with bodies
+    assert_eq!(loaded.functions.len(), 3); // add, multiply, main  
+    assert_eq!(loaded.func_declarations.len(), 1); // printf
     println!("✓ Exported bitcode loads successfully");
     
     // Step 7: Verify exported IR can be loaded
     let loaded_ir = Module::from_ir_path(exported_ll.to_str().unwrap())
         .expect("Failed to load exported IR");
     assert_eq!(loaded_ir.source_file_name, module.source_file_name);
+    assert_eq!(loaded_ir.functions.len(), 3); // add, multiply, main
     println!("✓ Exported IR text loads successfully");
     
     // Step 8: Verify exported bitcode can be compiled with llc

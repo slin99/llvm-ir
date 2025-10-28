@@ -5,6 +5,11 @@ use crate::types::*;
 use crate::constant::*;
 use crate::function::*;
 use crate::name::Name;
+use crate::{BasicBlock, Instruction, Operand, Terminator};
+use crate::instruction;
+use crate::terminator;
+use crate::predicates::IntPredicate;
+use either::Either;
 use std::collections::HashMap;
 use std::ffi::CString;
 
@@ -419,8 +424,6 @@ impl FunctionDeclaration {
 
 impl Function {
     fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types) -> Result<LLVMValueRef, String> {
-        // For now, just create a function declaration
-        // Full function body conversion would require implementing instruction conversion
         unsafe {
             let func_ty = types.func_type(
                 self.return_type.clone(),
@@ -442,8 +445,26 @@ impl Function {
             
             ctx.insert_value(Name::Name(Box::new(self.name.clone())), func);
             
-            // TODO: Implement basic block and instruction conversion
-            // For now, this only creates the function signature
+            // If function has basic blocks, convert them
+            if !self.basic_blocks.is_empty() {
+                // First pass: create all basic blocks
+                for bb in &self.basic_blocks {
+                    let c_bb_name = CString::new(bb.name.to_string()).unwrap();
+                    let llvm_bb = LLVMAppendBasicBlockInContext(ctx.context, func, c_bb_name.as_ptr());
+                    ctx.insert_bb(bb.name.clone(), llvm_bb);
+                }
+                
+                // Map parameters to values
+                for (i, param) in self.parameters.iter().enumerate() {
+                    let llvm_param = LLVMGetParam(func, i as u32);
+                    ctx.insert_value(param.name.clone(), llvm_param);
+                }
+                
+                // Second pass: convert instructions in each basic block
+                for bb in &self.basic_blocks {
+                    bb.to_llvm(ctx, types, func)?;
+                }
+            }
             
             Ok(func)
         }
@@ -566,6 +587,295 @@ impl Visibility {
             Visibility::Default => LLVMVisibility::LLVMDefaultVisibility,
             Visibility::Hidden => LLVMVisibility::LLVMHiddenVisibility,
             Visibility::Protected => LLVMVisibility::LLVMProtectedVisibility,
+        }
+    }
+}
+
+// BasicBlock conversion
+impl BasicBlock {
+    fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types, func: LLVMValueRef) -> Result<(), String> {
+        unsafe {
+            let bb = ctx.get_bb(&self.name).ok_or_else(|| format!("Basic block not found: {}", self.name))?;
+            LLVMPositionBuilderAtEnd(ctx.builder, bb);
+            
+            // Convert all instructions
+            for instr in &self.instrs {
+                instr.to_llvm(ctx, types)?;
+            }
+            
+            // Convert terminator
+            self.term.to_llvm(ctx, types)?;
+            
+            Ok(())
+        }
+    }
+}
+
+// Operand conversion
+impl Operand {
+    fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types) -> Result<LLVMValueRef, String> {
+        match self {
+            Operand::LocalOperand { name, ty } => {
+                ctx.get_or_insert_value(name)
+                    .ok_or_else(|| format!("Local operand not found: {}", name))
+            }
+            Operand::ConstantOperand(const_ref) => {
+                const_ref.as_ref().to_llvm(ctx, types)
+            }
+            Operand::MetadataOperand => {
+                Err("Metadata operands not yet supported".to_string())
+            }
+        }
+    }
+}
+
+// Instruction conversion
+impl Instruction {
+    fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types) -> Result<(), String> {
+        unsafe {
+            let result = match self {
+                Instruction::Add(add) => {
+                    let lhs = add.operand0.to_llvm(ctx, types)?;
+                    let rhs = add.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(add.dest.to_string()).unwrap();
+                    let val = LLVMBuildAdd(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(add.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Sub(sub) => {
+                    let lhs = sub.operand0.to_llvm(ctx, types)?;
+                    let rhs = sub.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(sub.dest.to_string()).unwrap();
+                    let val = LLVMBuildSub(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(sub.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Mul(mul) => {
+                    let lhs = mul.operand0.to_llvm(ctx, types)?;
+                    let rhs = mul.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(mul.dest.to_string()).unwrap();
+                    let val = LLVMBuildMul(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(mul.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::UDiv(udiv) => {
+                    let lhs = udiv.operand0.to_llvm(ctx, types)?;
+                    let rhs = udiv.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(udiv.dest.to_string()).unwrap();
+                    let val = LLVMBuildUDiv(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(udiv.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::SDiv(sdiv) => {
+                    let lhs = sdiv.operand0.to_llvm(ctx, types)?;
+                    let rhs = sdiv.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(sdiv.dest.to_string()).unwrap();
+                    let val = LLVMBuildSDiv(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(sdiv.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Call(call) => {
+                    // Get the function to call
+                    let callee = match &call.function {
+                        Either::Right(operand) => operand.to_llvm(ctx, types)?,
+                        Either::Left(_) => return Err("Inline assembly calls not yet supported".to_string()),
+                    };
+                    
+                    // Get function type
+                    #[cfg(feature = "llvm-15-or-greater")]
+                    let func_ty = call.function_ty.as_ref().to_llvm_type(ctx, types)?;
+                    #[cfg(feature = "llvm-14-or-lower")]
+                    let func_ty = {
+                        let callee_ty = types.type_of(&call.function);
+                        match callee_ty.as_ref() {
+                            Type::PointerType { pointee_type, .. } => pointee_type.as_ref().to_llvm_type(ctx, types)?,
+                            _ => return Err(format!("Expected pointer type for call function, got {:?}", callee_ty)),
+                        }
+                    };
+                    
+                    // Convert arguments
+                    let mut args: Vec<LLVMValueRef> = call.arguments
+                        .iter()
+                        .map(|(op, _attrs)| op.to_llvm(ctx, types))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    
+                    let c_name = if let Some(ref name) = call.dest {
+                        CString::new(name.to_string()).unwrap()
+                    } else {
+                        CString::new("").unwrap()
+                    };
+                    
+                    let val = LLVMBuildCall2(
+                        ctx.builder,
+                        func_ty,
+                        callee,
+                        args.as_mut_ptr(),
+                        args.len() as u32,
+                        c_name.as_ptr()
+                    );
+                    
+                    if let Some(ref dest) = call.dest {
+                        ctx.insert_value(dest.clone(), val);
+                    }
+                    Ok(())
+                }
+                Instruction::Alloca(alloca) => {
+                    let allocated_ty = alloca.allocated_type.as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(alloca.dest.to_string()).unwrap();
+                    let val = LLVMBuildAlloca(ctx.builder, allocated_ty, c_name.as_ptr());
+                    ctx.insert_value(alloca.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Load(load) => {
+                    let addr = load.address.to_llvm(ctx, types)?;
+                    let load_ty = types.type_of(load).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(load.dest.to_string()).unwrap();
+                    let val = LLVMBuildLoad2(ctx.builder, load_ty, addr, c_name.as_ptr());
+                    ctx.insert_value(load.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Store(store) => {
+                    let val = store.value.to_llvm(ctx, types)?;
+                    let addr = store.address.to_llvm(ctx, types)?;
+                    LLVMBuildStore(ctx.builder, val, addr);
+                    Ok(())
+                }
+                Instruction::GetElementPtr(gep) => {
+                    let ptr = gep.address.to_llvm(ctx, types)?;
+                    let mut indices: Vec<LLVMValueRef> = gep.indices
+                        .iter()
+                        .map(|op| op.to_llvm(ctx, types))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    let c_name = CString::new(gep.dest.to_string()).unwrap();
+                    
+                    #[cfg(feature = "llvm-14-or-greater")]
+                    let source_ty = gep.source_element_type.as_ref().to_llvm_type(ctx, types)?;
+                    #[cfg(feature = "llvm-14-or-lower")]
+                    let source_ty = {
+                        let addr_ty = types.type_of(&gep.address);
+                        match addr_ty.as_ref() {
+                            Type::PointerType { pointee_type, .. } => pointee_type.as_ref().to_llvm_type(ctx, types)?,
+                            _ => return Err(format!("Expected pointer type for GEP address, got {:?}", addr_ty)),
+                        }
+                    };
+                    
+                    let val = LLVMBuildGEP2(
+                        ctx.builder,
+                        source_ty,
+                        ptr,
+                        indices.as_mut_ptr(),
+                        indices.len() as u32,
+                        c_name.as_ptr()
+                    );
+                    ctx.insert_value(gep.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::ICmp(icmp) => {
+                    let lhs = icmp.operand0.to_llvm(ctx, types)?;
+                    let rhs = icmp.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(icmp.dest.to_string()).unwrap();
+                    let pred = icmp.predicate.to_llvm();
+                    let val = LLVMBuildICmp(ctx.builder, pred, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(icmp.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Phi(phi) => {
+                    let phi_ty = types.type_of(phi).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(phi.dest.to_string()).unwrap();
+                    let phi_node = LLVMBuildPhi(ctx.builder, phi_ty, c_name.as_ptr());
+                    
+                    let mut values = Vec::new();
+                    let mut blocks = Vec::new();
+                    
+                    for (op, label) in &phi.incoming_values {
+                        values.push(op.to_llvm(ctx, types)?);
+                        blocks.push(ctx.get_bb(label).ok_or_else(|| format!("BB not found: {}", label))?);
+                    }
+                    
+                    LLVMAddIncoming(
+                        phi_node,
+                        values.as_mut_ptr(),
+                        blocks.as_mut_ptr(),
+                        values.len() as u32
+                    );
+                    
+                    ctx.insert_value(phi.dest.clone(), phi_node);
+                    Ok(())
+                }
+                _ => {
+                    // For unimplemented instructions, return an error
+                    Err(format!("Instruction type not yet implemented: {:?}", self))
+                }
+            };
+            result
+        }
+    }
+}
+
+// Terminator conversion
+impl Terminator {
+    fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types) -> Result<(), String> {
+        unsafe {
+            match self {
+                Terminator::Ret(ret) => {
+                    if let Some(ref op) = ret.return_operand {
+                        let val = op.to_llvm(ctx, types)?;
+                        LLVMBuildRet(ctx.builder, val);
+                    } else {
+                        LLVMBuildRetVoid(ctx.builder);
+                    }
+                    Ok(())
+                }
+                Terminator::Br(br) => {
+                    let dest = ctx.get_bb(&br.dest).ok_or_else(|| format!("BB not found: {}", br.dest))?;
+                    LLVMBuildBr(ctx.builder, dest);
+                    Ok(())
+                }
+                Terminator::CondBr(cbr) => {
+                    let cond = cbr.condition.to_llvm(ctx, types)?;
+                    let true_bb = ctx.get_bb(&cbr.true_dest).ok_or_else(|| format!("BB not found: {}", cbr.true_dest))?;
+                    let false_bb = ctx.get_bb(&cbr.false_dest).ok_or_else(|| format!("BB not found: {}", cbr.false_dest))?;
+                    LLVMBuildCondBr(ctx.builder, cond, true_bb, false_bb);
+                    Ok(())
+                }
+                Terminator::Switch(sw) => {
+                    let val = sw.operand.to_llvm(ctx, types)?;
+                    let default_bb = ctx.get_bb(&sw.default_dest).ok_or_else(|| format!("BB not found: {}", sw.default_dest))?;
+                    let switch = LLVMBuildSwitch(ctx.builder, val, default_bb, sw.dests.len() as u32);
+                    
+                    for (const_val, label) in &sw.dests {
+                        let case_val = const_val.as_ref().to_llvm(ctx, types)?;
+                        let case_bb = ctx.get_bb(label).ok_or_else(|| format!("BB not found: {}", label))?;
+                        LLVMAddCase(switch, case_val, case_bb);
+                    }
+                    Ok(())
+                }
+                Terminator::Unreachable(_) => {
+                    LLVMBuildUnreachable(ctx.builder);
+                    Ok(())
+                }
+                _ => {
+                    Err(format!("Terminator type not yet implemented: {:?}", self))
+                }
+            }
+        }
+    }
+}
+
+// IntPredicate conversion
+impl IntPredicate {
+    fn to_llvm(&self) -> LLVMIntPredicate {
+        match self {
+            IntPredicate::EQ => LLVMIntPredicate::LLVMIntEQ,
+            IntPredicate::NE => LLVMIntPredicate::LLVMIntNE,
+            IntPredicate::UGT => LLVMIntPredicate::LLVMIntUGT,
+            IntPredicate::UGE => LLVMIntPredicate::LLVMIntUGE,
+            IntPredicate::ULT => LLVMIntPredicate::LLVMIntULT,
+            IntPredicate::ULE => LLVMIntPredicate::LLVMIntULE,
+            IntPredicate::SGT => LLVMIntPredicate::LLVMIntSGT,
+            IntPredicate::SGE => LLVMIntPredicate::LLVMIntSGE,
+            IntPredicate::SLT => LLVMIntPredicate::LLVMIntSLT,
+            IntPredicate::SLE => LLVMIntPredicate::LLVMIntSLE,
         }
     }
 }

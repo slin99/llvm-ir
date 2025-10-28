@@ -28,10 +28,9 @@ fn test_save_and_load_bitcode() {
         .expect("Failed to load saved bitcode");
     
     // Compare basic properties
-    // Note: The current implementation only saves function signatures, not bodies
+    // Functions are now exported with full bodies
     assert_eq!(original_module.source_file_name, loaded_module.source_file_name);
-    // Function declarations are created for functions (without bodies)
-    assert_eq!(original_module.functions.len(), loaded_module.func_declarations.len());
+    assert_eq!(original_module.functions.len(), loaded_module.functions.len());
     assert_eq!(original_module.global_vars.len(), loaded_module.global_vars.len());
     
     // Clean up
@@ -62,10 +61,9 @@ fn test_save_ir_text() {
         .expect("Failed to load saved IR");
     
     // Compare basic properties
-    // Note: The current implementation only saves function signatures, not bodies
+    // Functions are now exported with full bodies
     assert_eq!(module.source_file_name, loaded_module.source_file_name);
-    // Function declarations are created for functions (without bodies)
-    assert_eq!(module.functions.len(), loaded_module.func_declarations.len());
+    assert_eq!(module.functions.len(), loaded_module.functions.len());
     
     // Clean up
     std::fs::remove_file(temp_path).ok();
@@ -89,7 +87,7 @@ fn test_to_ir_string() {
     let ir_string = module.to_ir_string()
         .expect("Failed to convert to IR string");
     
-    // Should contain some expected content (function declarations)
-    assert!(ir_string.contains("declare"));
+    // Should contain some expected content (function definitions now)
+    assert!(ir_string.contains("define"));
     assert!(ir_string.len() > 0);
 }
