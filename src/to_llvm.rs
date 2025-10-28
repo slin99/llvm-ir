@@ -306,8 +306,30 @@ impl Type {
 impl GlobalVariable {
     fn to_llvm(&self, ctx: &mut ToLLVMContext, types: &Types) -> Result<LLVMValueRef, String> {
         unsafe {
-            let ty = self.ty.as_ref();
-            let llvm_ty = ty.to_llvm_type(ctx, types)?;
+            // Determine the type to use for the global
+            // In LLVM 15+, the GlobalVariable type is an opaque pointer
+            // We need the actual value type, which we can get from the initializer
+            let value_type = if let Some(ref init) = self.initializer {
+                // Get the type from the initializer
+                types.type_of(init.as_ref())
+            } else {
+                // No initializer - use the pointed-to type if available
+                #[cfg(feature = "llvm-14-or-lower")]
+                {
+                    match self.ty.as_ref() {
+                        Type::PointerType { pointee_type, .. } => pointee_type.clone(),
+                        _ => return Err(format!("Expected pointer type for global variable, got {:?}", self.ty)),
+                    }
+                }
+                #[cfg(feature = "llvm-15-or-greater")]
+                {
+                    // For opaque pointers without initializer, we can't determine the value type
+                    // Use i8 as a placeholder
+                    types.i8()
+                }
+            };
+            
+            let llvm_ty = value_type.as_ref().to_llvm_type(ctx, types)?;
             
             let c_name = CString::new(self.name.to_string()).unwrap();
             let global = LLVMAddGlobal(ctx.module, llvm_ty, c_name.as_ptr());
