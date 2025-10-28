@@ -1,4 +1,4 @@
-# llvm-ir: LLVM IR in natural Rust data structures
+# llvm-vibe: billions must vibe compile
 
 [![crates.io](http://img.shields.io/crates/v/llvm-ir.svg)](https://crates.io/crates/llvm-ir)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://raw.githubusercontent.com/cdisselkoen/llvm-ir/main/LICENSE)
