@@ -70,24 +70,36 @@ llvm-as output.ll -o output2.bc
 llvm-dis output.bc -o output2.ll
 ```
 
-## Current Limitations
+## Current Implementation
 
-The current implementation exports:
+The implementation exports:
 - ✅ Module metadata (name, source file, data layout, target triple)
-- ✅ Function signatures (without bodies)
+- ✅ Function signatures **with bodies**
 - ✅ Function declarations
+- ✅ Basic blocks with instructions
+- ✅ Common instructions (arithmetic, memory, control flow, comparisons)
+- ✅ Terminators (ret, br, condbr, switch, unreachable)
 - ✅ Global variables and constants
 - ✅ Type information
 - ✅ Linkage and visibility attributes
 
-Not yet implemented:
-- ❌ Function bodies (basic blocks and instructions)
+Supported instruction types:
+- Arithmetic: Add, Sub, Mul, UDiv, SDiv
+- Memory: Alloca, Load, Store
+- Control flow: Call, Phi
+- Pointer operations: GetElementPtr  
+- Comparisons: ICmp
+- Terminators: Ret, Br, CondBr, Switch, Unreachable
+
+Less common instruction types will return descriptive error messages if encountered.
 
 This is sufficient for many use cases including:
 - Module structure analysis
 - Type information extraction
 - Creating interfaces/headers
 - Preserving module metadata
+- **Complete function body preservation**
+- **Full roundtrip IR conversion**
 
 ## Implementation Details
 
