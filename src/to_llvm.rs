@@ -802,9 +802,349 @@ impl Instruction {
                     ctx.insert_value(phi.dest.clone(), phi_node);
                     Ok(())
                 }
-                _ => {
-                    // For unimplemented instructions, return an error
-                    Err(format!("Instruction type not yet implemented: {:?}", self))
+                // Remaining integer binary ops
+                Instruction::URem(urem) => {
+                    let lhs = urem.operand0.to_llvm(ctx, types)?;
+                    let rhs = urem.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(urem.dest.to_string()).unwrap();
+                    let val = LLVMBuildURem(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(urem.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::SRem(srem) => {
+                    let lhs = srem.operand0.to_llvm(ctx, types)?;
+                    let rhs = srem.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(srem.dest.to_string()).unwrap();
+                    let val = LLVMBuildSRem(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(srem.dest.clone(), val);
+                    Ok(())
+                }
+                // Bitwise binary ops
+                Instruction::And(and) => {
+                    let lhs = and.operand0.to_llvm(ctx, types)?;
+                    let rhs = and.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(and.dest.to_string()).unwrap();
+                    let val = LLVMBuildAnd(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(and.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Or(or) => {
+                    let lhs = or.operand0.to_llvm(ctx, types)?;
+                    let rhs = or.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(or.dest.to_string()).unwrap();
+                    let val = LLVMBuildOr(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(or.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Xor(xor) => {
+                    let lhs = xor.operand0.to_llvm(ctx, types)?;
+                    let rhs = xor.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(xor.dest.to_string()).unwrap();
+                    let val = LLVMBuildXor(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(xor.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Shl(shl) => {
+                    let lhs = shl.operand0.to_llvm(ctx, types)?;
+                    let rhs = shl.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(shl.dest.to_string()).unwrap();
+                    let val = LLVMBuildShl(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(shl.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::LShr(lshr) => {
+                    let lhs = lshr.operand0.to_llvm(ctx, types)?;
+                    let rhs = lshr.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(lshr.dest.to_string()).unwrap();
+                    let val = LLVMBuildLShr(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(lshr.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::AShr(ashr) => {
+                    let lhs = ashr.operand0.to_llvm(ctx, types)?;
+                    let rhs = ashr.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(ashr.dest.to_string()).unwrap();
+                    let val = LLVMBuildAShr(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(ashr.dest.clone(), val);
+                    Ok(())
+                }
+                // Floating-point ops
+                Instruction::FAdd(fadd) => {
+                    let lhs = fadd.operand0.to_llvm(ctx, types)?;
+                    let rhs = fadd.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fadd.dest.to_string()).unwrap();
+                    let val = LLVMBuildFAdd(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(fadd.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::FSub(fsub) => {
+                    let lhs = fsub.operand0.to_llvm(ctx, types)?;
+                    let rhs = fsub.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fsub.dest.to_string()).unwrap();
+                    let val = LLVMBuildFSub(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(fsub.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::FMul(fmul) => {
+                    let lhs = fmul.operand0.to_llvm(ctx, types)?;
+                    let rhs = fmul.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fmul.dest.to_string()).unwrap();
+                    let val = LLVMBuildFMul(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(fmul.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::FDiv(fdiv) => {
+                    let lhs = fdiv.operand0.to_llvm(ctx, types)?;
+                    let rhs = fdiv.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fdiv.dest.to_string()).unwrap();
+                    let val = LLVMBuildFDiv(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(fdiv.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::FRem(frem) => {
+                    let lhs = frem.operand0.to_llvm(ctx, types)?;
+                    let rhs = frem.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(frem.dest.to_string()).unwrap();
+                    let val = LLVMBuildFRem(ctx.builder, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(frem.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::FNeg(fneg) => {
+                    let op = fneg.operand.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fneg.dest.to_string()).unwrap();
+                    let val = LLVMBuildFNeg(ctx.builder, op, c_name.as_ptr());
+                    ctx.insert_value(fneg.dest.clone(), val);
+                    Ok(())
+                }
+                // Vector ops
+                Instruction::ExtractElement(ee) => {
+                    let vec = ee.vector.to_llvm(ctx, types)?;
+                    let idx = ee.index.to_llvm(ctx, types)?;
+                    let c_name = CString::new(ee.dest.to_string()).unwrap();
+                    let val = LLVMBuildExtractElement(ctx.builder, vec, idx, c_name.as_ptr());
+                    ctx.insert_value(ee.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::InsertElement(ie) => {
+                    let vec = ie.vector.to_llvm(ctx, types)?;
+                    let elt = ie.element.to_llvm(ctx, types)?;
+                    let idx = ie.index.to_llvm(ctx, types)?;
+                    let c_name = CString::new(ie.dest.to_string()).unwrap();
+                    let val = LLVMBuildInsertElement(ctx.builder, vec, elt, idx, c_name.as_ptr());
+                    ctx.insert_value(ie.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::ShuffleVector(sv) => {
+                    let v1 = sv.operand0.to_llvm(ctx, types)?;
+                    let v2 = sv.operand1.to_llvm(ctx, types)?;
+                    let mask = sv.mask.to_llvm(ctx, types)?;
+                    let c_name = CString::new(sv.dest.to_string()).unwrap();
+                    let val = LLVMBuildShuffleVector(ctx.builder, v1, v2, mask, c_name.as_ptr());
+                    ctx.insert_value(sv.dest.clone(), val);
+                    Ok(())
+                }
+                // Aggregate ops
+                Instruction::ExtractValue(ev) => {
+                    let mut agg = ev.aggregate.to_llvm(ctx, types)?;
+                    let c_name = CString::new(ev.dest.to_string()).unwrap();
+                    let empty_name = CString::new("").unwrap();
+                    // Extract nested values one index at a time
+                    for (i, &idx) in ev.indices.iter().enumerate() {
+                        let name = if i == ev.indices.len() - 1 {
+                            c_name.as_ptr()
+                        } else {
+                            empty_name.as_ptr()
+                        };
+                        agg = LLVMBuildExtractValue(ctx.builder, agg, idx, name);
+                    }
+                    ctx.insert_value(ev.dest.clone(), agg);
+                    Ok(())
+                }
+                Instruction::InsertValue(iv) => {
+                    let mut agg = iv.aggregate.to_llvm(ctx, types)?;
+                    let elt = iv.element.to_llvm(ctx, types)?;
+                    let c_name = CString::new(iv.dest.to_string()).unwrap();
+                    // Insert at nested location one index at a time
+                    // This is tricky - we need to build up the insertvalue chain
+                    // For now, just handle single index case
+                    if iv.indices.len() == 1 {
+                        let val = LLVMBuildInsertValue(ctx.builder, agg, elt, iv.indices[0], c_name.as_ptr());
+                        ctx.insert_value(iv.dest.clone(), val);
+                        Ok(())
+                    } else {
+                        Err("Multi-index InsertValue not yet fully supported".to_string())
+                    }
+                }
+                // Memory ops
+                Instruction::Fence(_fence) => {
+                    // Fence is somewhat complex - for now, just skip it
+                    Ok(())
+                }
+                Instruction::CmpXchg(cmpxchg) => {
+                    let ptr = cmpxchg.address.to_llvm(ctx, types)?;
+                    let cmp = cmpxchg.expected.to_llvm(ctx, types)?;
+                    let new_val = cmpxchg.replacement.to_llvm(ctx, types)?;
+                    let c_name = CString::new(cmpxchg.dest.to_string()).unwrap();
+                    let val = LLVMBuildAtomicCmpXchg(ctx.builder, ptr, cmp, new_val, 
+                        LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                        LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent,
+                        0);
+                    ctx.insert_value(cmpxchg.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::AtomicRMW(rmw) => {
+                    let ptr = rmw.address.to_llvm(ctx, types)?;
+                    let val = rmw.value.to_llvm(ctx, types)?;
+                    let c_name = CString::new(rmw.dest.to_string()).unwrap();
+                    // Use Xchg as default operation
+                    let result = LLVMBuildAtomicRMW(ctx.builder, LLVMAtomicRMWBinOp::LLVMAtomicRMWBinOpXchg,
+                        ptr, val, LLVMAtomicOrdering::LLVMAtomicOrderingSequentiallyConsistent, 0);
+                    ctx.insert_value(rmw.dest.clone(), result);
+                    Ok(())
+                }
+                // Conversion ops
+                Instruction::Trunc(trunc) => {
+                    let val = trunc.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(trunc).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(trunc.dest.to_string()).unwrap();
+                    let result = LLVMBuildTrunc(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(trunc.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::ZExt(zext) => {
+                    let val = zext.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(zext).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(zext.dest.to_string()).unwrap();
+                    let result = LLVMBuildZExt(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(zext.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::SExt(sext) => {
+                    let val = sext.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(sext).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(sext.dest.to_string()).unwrap();
+                    let result = LLVMBuildSExt(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(sext.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::FPTrunc(fptrunc) => {
+                    let val = fptrunc.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(fptrunc).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(fptrunc.dest.to_string()).unwrap();
+                    let result = LLVMBuildFPTrunc(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(fptrunc.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::FPExt(fpext) => {
+                    let val = fpext.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(fpext).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(fpext.dest.to_string()).unwrap();
+                    let result = LLVMBuildFPExt(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(fpext.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::FPToUI(fptoui) => {
+                    let val = fptoui.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(fptoui).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(fptoui.dest.to_string()).unwrap();
+                    let result = LLVMBuildFPToUI(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(fptoui.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::FPToSI(fptosi) => {
+                    let val = fptosi.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(fptosi).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(fptosi.dest.to_string()).unwrap();
+                    let result = LLVMBuildFPToSI(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(fptosi.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::UIToFP(uitofp) => {
+                    let val = uitofp.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(uitofp).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(uitofp.dest.to_string()).unwrap();
+                    let result = LLVMBuildUIToFP(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(uitofp.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::SIToFP(sitofp) => {
+                    let val = sitofp.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(sitofp).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(sitofp.dest.to_string()).unwrap();
+                    let result = LLVMBuildSIToFP(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(sitofp.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::PtrToInt(ptrtoint) => {
+                    let val = ptrtoint.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(ptrtoint).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(ptrtoint.dest.to_string()).unwrap();
+                    let result = LLVMBuildPtrToInt(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(ptrtoint.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::IntToPtr(inttoptr) => {
+                    let val = inttoptr.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(inttoptr).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(inttoptr.dest.to_string()).unwrap();
+                    let result = LLVMBuildIntToPtr(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(inttoptr.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::BitCast(bitcast) => {
+                    let val = bitcast.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(bitcast).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(bitcast.dest.to_string()).unwrap();
+                    let result = LLVMBuildBitCast(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(bitcast.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::AddrSpaceCast(addrspacecast) => {
+                    let val = addrspacecast.operand.to_llvm(ctx, types)?;
+                    let dest_ty = types.type_of(addrspacecast).as_ref().to_llvm_type(ctx, types)?;
+                    let c_name = CString::new(addrspacecast.dest.to_string()).unwrap();
+                    let result = LLVMBuildAddrSpaceCast(ctx.builder, val, dest_ty, c_name.as_ptr());
+                    ctx.insert_value(addrspacecast.dest.clone(), result);
+                    Ok(())
+                }
+                // Other operations
+                Instruction::FCmp(fcmp) => {
+                    let lhs = fcmp.operand0.to_llvm(ctx, types)?;
+                    let rhs = fcmp.operand1.to_llvm(ctx, types)?;
+                    let c_name = CString::new(fcmp.dest.to_string()).unwrap();
+                    let pred = fcmp.predicate.to_llvm();
+                    let val = LLVMBuildFCmp(ctx.builder, pred, lhs, rhs, c_name.as_ptr());
+                    ctx.insert_value(fcmp.dest.clone(), val);
+                    Ok(())
+                }
+                Instruction::Select(select) => {
+                    let cond = select.condition.to_llvm(ctx, types)?;
+                    let true_val = select.true_value.to_llvm(ctx, types)?;
+                    let false_val = select.false_value.to_llvm(ctx, types)?;
+                    let c_name = CString::new(select.dest.to_string()).unwrap();
+                    let val = LLVMBuildSelect(ctx.builder, cond, true_val, false_val, c_name.as_ptr());
+                    ctx.insert_value(select.dest.clone(), val);
+                    Ok(())
+                }
+                #[cfg(feature = "llvm-10-or-greater")]
+                Instruction::Freeze(freeze) => {
+                    let val = freeze.operand.to_llvm(ctx, types)?;
+                    let c_name = CString::new(freeze.dest.to_string()).unwrap();
+                    let result = LLVMBuildFreeze(ctx.builder, val, c_name.as_ptr());
+                    ctx.insert_value(freeze.dest.clone(), result);
+                    Ok(())
+                }
+                Instruction::VAArg(_) => {
+                    Err("VAArg instruction not yet implemented".to_string())
+                }
+                Instruction::LandingPad(_) => {
+                    Err("LandingPad instruction not yet implemented".to_string())
+                }
+                Instruction::CatchPad(_) => {
+                    Err("CatchPad instruction not yet implemented".to_string())
+                }
+                Instruction::CleanupPad(_) => {
+                    Err("CleanupPad instruction not yet implemented".to_string())
                 }
             };
             result
@@ -854,8 +1194,75 @@ impl Terminator {
                     LLVMBuildUnreachable(ctx.builder);
                     Ok(())
                 }
-                _ => {
-                    Err(format!("Terminator type not yet implemented: {:?}", self))
+                Terminator::IndirectBr(ibr) => {
+                    let addr = ibr.operand.to_llvm(ctx, types)?;
+                    let ibr_inst = LLVMBuildIndirectBr(ctx.builder, addr, ibr.possible_dests.len() as u32);
+                    for dest in &ibr.possible_dests {
+                        let bb = ctx.get_bb(dest).ok_or_else(|| format!("BB not found: {}", dest))?;
+                        LLVMAddDestination(ibr_inst, bb);
+                    }
+                    Ok(())
+                }
+                Terminator::Invoke(invoke) => {
+                    // Get the function to invoke
+                    let callee = match &invoke.function {
+                        Either::Right(operand) => operand.to_llvm(ctx, types)?,
+                        Either::Left(_) => return Err("Inline assembly invokes not supported".to_string()),
+                    };
+                    
+                    // Get function type
+                    #[cfg(feature = "llvm-15-or-greater")]
+                    let func_ty = invoke.function_ty.as_ref().to_llvm_type(ctx, types)?;
+                    #[cfg(feature = "llvm-14-or-lower")]
+                    let func_ty = {
+                        let callee_ty = types.type_of(&invoke.function);
+                        match callee_ty.as_ref() {
+                            Type::PointerType { pointee_type, .. } => pointee_type.as_ref().to_llvm_type(ctx, types)?,
+                            _ => return Err(format!("Expected pointer type for invoke function")),
+                        }
+                    };
+                    
+                    // Convert arguments
+                    let mut args: Vec<LLVMValueRef> = invoke.arguments
+                        .iter()
+                        .map(|(op, _attrs)| op.to_llvm(ctx, types))
+                        .collect::<Result<Vec<_>, _>>()?;
+                    
+                    let normal_bb = ctx.get_bb(&invoke.return_label).ok_or_else(|| format!("BB not found: {}", invoke.return_label))?;
+                    let unwind_bb = ctx.get_bb(&invoke.exception_label).ok_or_else(|| format!("BB not found: {}", invoke.exception_label))?;
+                    
+                    let c_name = CString::new(invoke.result.to_string()).unwrap();
+                    
+                    let val = LLVMBuildInvoke2(
+                        ctx.builder,
+                        func_ty,
+                        callee,
+                        args.as_mut_ptr(),
+                        args.len() as u32,
+                        normal_bb,
+                        unwind_bb,
+                        c_name.as_ptr()
+                    );
+                    
+                    ctx.insert_value(invoke.result.clone(), val);
+                    Ok(())
+                }
+                Terminator::Resume(resume) => {
+                    let val = resume.operand.to_llvm(ctx, types)?;
+                    LLVMBuildResume(ctx.builder, val);
+                    Ok(())
+                }
+                Terminator::CleanupRet(_) => {
+                    Err("CleanupRet terminator not yet implemented".to_string())
+                }
+                Terminator::CatchRet(_) => {
+                    Err("CatchRet terminator not yet implemented".to_string())
+                }
+                Terminator::CatchSwitch(_) => {
+                    Err("CatchSwitch terminator not yet implemented".to_string())
+                }
+                Terminator::CallBr(_) => {
+                    Err("CallBr terminator not yet implemented".to_string())
                 }
             }
         }
@@ -876,6 +1283,31 @@ impl IntPredicate {
             IntPredicate::SGE => LLVMIntPredicate::LLVMIntSGE,
             IntPredicate::SLT => LLVMIntPredicate::LLVMIntSLT,
             IntPredicate::SLE => LLVMIntPredicate::LLVMIntSLE,
+        }
+    }
+}
+
+// FPPredicate conversion
+impl crate::predicates::FPPredicate {
+    fn to_llvm(&self) -> LLVMRealPredicate {
+        use crate::predicates::FPPredicate::*;
+        match self {
+            False => LLVMRealPredicate::LLVMRealPredicateFalse,
+            OEQ => LLVMRealPredicate::LLVMRealOEQ,
+            OGT => LLVMRealPredicate::LLVMRealOGT,
+            OGE => LLVMRealPredicate::LLVMRealOGE,
+            OLT => LLVMRealPredicate::LLVMRealOLT,
+            OLE => LLVMRealPredicate::LLVMRealOLE,
+            ONE => LLVMRealPredicate::LLVMRealONE,
+            ORD => LLVMRealPredicate::LLVMRealORD,
+            UNO => LLVMRealPredicate::LLVMRealUNO,
+            UEQ => LLVMRealPredicate::LLVMRealUEQ,
+            UGT => LLVMRealPredicate::LLVMRealUGT,
+            UGE => LLVMRealPredicate::LLVMRealUGE,
+            ULT => LLVMRealPredicate::LLVMRealULT,
+            ULE => LLVMRealPredicate::LLVMRealULE,
+            UNE => LLVMRealPredicate::LLVMRealUNE,
+            True => LLVMRealPredicate::LLVMRealPredicateTrue,
         }
     }
 }
