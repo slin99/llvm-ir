@@ -10,6 +10,7 @@ mod from_llvm;
 mod iterators;
 #[rustfmt::skip]
 mod llvm_sys;
+mod to_llvm;
 
 pub mod basicblock;
 pub use basicblock::BasicBlock;
